@@ -182,7 +182,6 @@ async function run() {
       }
     });
 
-// jkdjfeojfoghjukigu
 
     app.post("/bookings", verifyToken, async (req, res) => {
       try {
