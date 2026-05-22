@@ -7,17 +7,27 @@ const { createRemoteJWKSet, jwtVerify } = require("jose-cjs");
 dotenv.config();
 
 const app = express();
-app.use(cors());
+// app.use(cors());
+// app.options('*', cors());
+const corsOption = {
+  origin: ['http://localhost:3000',process.env.CLIENT_URL],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}
+app.use(cors(corsOption));
+
 app.use(express.json());
 
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-    methods: ["GET", "POST", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+
+// app.use(
+//   cors({
+//     origin: process.env.CLIENT_URL,
+//     credentials: true,
+//     methods: ["GET", "POST", "PATCH", "DELETE"],
+//     allowedHeaders: ["Content-Type", "Authorization"],
+//   })
+// );
 
 const client = new MongoClient(process.env.MONGO_URI);
 
@@ -103,9 +113,11 @@ async function run() {
 
     app.get("/rooms/:id", verifyToken, async (req, res) => {
       try {
+        console.log(req.params.id);
         const room = await rooms.findOne({
           _id: new ObjectId(req.params.id),
         });
+        console.log(room);
 
         if (!room) return res.status(404).json({ message: "Not found" });
 
@@ -252,4 +264,3 @@ async function run() {
 }
 
 run();
-// guiguoioyioyu8igtuftvjgufguglo
