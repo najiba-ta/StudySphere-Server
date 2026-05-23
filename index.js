@@ -10,15 +10,14 @@ const app = express();
 // app.use(cors());
 // app.options('*', cors());
 const corsOption = {
-  origin: ['http://localhost:3000',process.env.CLIENT_URL],
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: ["http://localhost:3000", process.env.CLIENT_URL],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
-}
+};
 app.use(cors(corsOption));
 
 app.use(express.json());
-
 
 // app.use(
 //   cors({
@@ -32,7 +31,7 @@ app.use(express.json());
 const client = new MongoClient(process.env.MONGO_URI);
 
 const JWKS = createRemoteJWKSet(
-  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
 );
 
 const verifyToken = async (req, res, next) => {
@@ -72,10 +71,10 @@ async function run() {
     });
 
     app.delete("/rooms-delete/:id", verifyToken, async (req, res) => {
-      const id = req.params.id
-      const filter = {_id: new ObjectId(id)}
-      const result = await rooms.deleteOne(filter)
-      res.send(result)
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await rooms.deleteOne(filter);
+      res.send(result);
     });
 
     app.get("/rooms", async (req, res) => {
@@ -156,7 +155,7 @@ async function run() {
 
         const result = await rooms.updateOne(
           { _id: room._id },
-          { $set: req.body }
+          { $set: req.body },
         );
 
         res.json(result);
@@ -165,23 +164,19 @@ async function run() {
       }
     });
 
-
     app.get("/my-listings/:userId", verifyToken, async (req, res) => {
       try {
         if (req.params.userId !== req.user.id) {
           return res.status(403).json({ message: "Unauthorized" });
         }
 
-        const data = await rooms
-          .find({ ownerId: req.user.id })
-          .toArray();
+        const data = await rooms.find({ ownerId: req.user.id }).toArray();
 
         res.json(data);
       } catch {
         res.status(500).json({ message: "Failed to fetch listings" });
       }
     });
-
 
     app.post("/bookings", verifyToken, async (req, res) => {
       try {
@@ -190,7 +185,17 @@ async function run() {
         });
 
         if (!room) return res.status(404).json({ message: "Room not found" });
+        const existingBooking = await bookings.findOne({
+          roomId: req.body.roomId,
+          userId: req.user.id,
+          date: new Date(req.body.date).toISOString(),
+          startTime: req.body.startTime,
+          endTime: req.body.endTime,
+        });
 
+        if (existingBooking) {
+          return res.status(400).json({ message: "Booking already exists" });
+        }
         const booking = {
           roomId: req.body.roomId,
           userId: req.user.id,
@@ -208,10 +213,7 @@ async function run() {
 
         const result = await bookings.insertOne(booking);
 
-        await rooms.updateOne(
-          { _id: room._id },
-          { $inc: { bookingCount: 1 } }
-        );
+        await rooms.updateOne({ _id: room._id }, { $inc: { bookingCount: 1 } });
 
         res.status(201).json(result);
       } catch {
@@ -221,9 +223,7 @@ async function run() {
 
     app.get("/bookings", verifyToken, async (req, res) => {
       try {
-        const data = await bookings
-          .find({ userId: req.user.id })
-          .toArray();
+        const data = await bookings.find({ userId: req.user.id }).toArray();
 
         res.json(data);
       } catch {
@@ -245,7 +245,7 @@ async function run() {
 
         await bookings.updateOne(
           { _id: booking._id },
-          { $set: { status: "cancelled" } }
+          { $set: { status: "cancelled" } },
         );
 
         res.json({ success: true });
@@ -254,11 +254,9 @@ async function run() {
       }
     });
 
-  
     app.listen(8000, () => {
       console.log("Server running on port 8000");
     });
-
   } catch (err) {
     console.error("DB connection error:", err);
   }
